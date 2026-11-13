@@ -1,0 +1,97 @@
+{
+ "description": "rainy Sunday studying, no vocals, 21 minutes",
+ "mode": "offline stub LLM",
+ "status": "ok",
+ "confidence": 0.8,
+ "trace": [
+  {
+   "step": "plan",
+   "ts": 1794597052.097004,
+   "plan": {
+    "target_energy": 0.3,
+    "target_valence": 0.5,
+    "target_danceability": 0.5,
+    "target_acousticness": 0.8,
+    "target_tempo": 0.2,
+    "favorite_genre": "lofi",
+    "favorite_mood": "chill",
+    "size": 6,
+    "exclude_genres": []
+   }
+  },
+  {
+   "step": "tool:search_songs",
+   "ts": 1794597052.0970728,
+   "k": 18,
+   "song_ids": [
+    4,
+    2,
+    6,
+    9,
+    17,
+    7,
+    15,
+    11,
+    19,
+    13,
+    20,
+    8,
+    12,
+    10,
+    1,
+    16,
+    3,
+    18
+   ]
+  },
+  {
+   "step": "tool:get_reviews",
+   "ts": 1794597052.097126,
+   "song_ids": [
+    4,
+    2,
+    6,
+    9,
+    17,
+    7,
+    15,
+    11,
+    19,
+    13,
+    20,
+    8,
+    12,
+    10,
+    1,
+    16,
+    3,
+    18
+   ]
+  },
+  {
+   "step": "draft",
+   "ts": 1794597052.097238,
+   "iteration": 1,
+   "song_ids": [
+    4,
+    2,
+    6,
+    9,
+    17,
+    7
+   ]
+  },
+  {
+   "step": "check",
+   "ts": 1794597052.0972412,
+   "iteration": 1,
+   "failures": []
+  },
+  {
+   "step": "critique",
+   "ts": 1794597052.097256,
+   "score": 0.8,
+   "comment": "stub critic"
+  }
+ ]
+}

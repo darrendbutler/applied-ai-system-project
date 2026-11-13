@@ -1,0 +1,59 @@
+flowchart TD
+    User([User]) --> UI["Streamlit UI<br/>src/app.py<br/>Library | Ask | Playlist Agent"]
+
+    subgraph Data["Data (CSV / Markdown)"]
+        Songs[(data/songs.csv)]
+        Reviews[(data/reviews.csv<br/>synthetic)]
+        Glossary[(data/glossary.md)]
+    end
+
+    %% ---- RAG path ----
+    UI -->|question| GR["guardrails.py<br/>validate_question<br/>empty / length / injection"]
+    GR -->|blocked| UI
+    GR -->|ok| RAG["rag.py<br/>answer_question"]
+    Songs --> Ret
+    Reviews --> Ret
+    Glossary --> Ret
+    Ret["retriever.py<br/>TF-IDF + cosine<br/>top-k docs"] --> RAG
+    RAG -->|top score < threshold| NoInfo["'Not enough information'<br/>(no LLM call)"]
+    NoInfo --> UI
+    RAG -->|grounded prompt<br/>prompts.py persona + few-shot| LLM
+    LLM["llm.py<br/>Gemini wrapper<br/>retries + timeout"] --> Cite{"verify_citations<br/>cited IDs were retrieved?"}
+    Cite -->|no: retry once, else safe message| RAG
+    Cite -->|yes| UI
+
+    %% ---- Agent path ----
+    UI -->|playlist description| Agent
+    subgraph Agent["agent.py: PlaylistAgent (max 3 iterations)"]
+        Plan["1. Plan<br/>LLM -> JSON profile<br/>validate_plan clamps 0-1"]
+        Act["2. Act (tools)<br/>search_songs -> recommend_songs<br/>get_reviews"]
+        Draft["3. Draft<br/>LLM picks + orders + reasons"]
+        Check{"4. Check<br/>deterministic rules<br/>+ LLM critic"}
+        Plan --> Act --> Draft --> Check
+        Check -->|failures fed back| Draft
+    end
+    Rec["recommender.py<br/>score_song / recommend_songs<br/>(Selecta 1.0, unchanged)"]
+    Act --> Rec
+    Songs --> Rec
+    Act --> Reviews
+    Plan --> LLM
+    Draft --> LLM
+    Check --> LLM
+    Check -->|pass or best effort| UI
+
+    %% ---- Observability & human review ----
+    Log[("logs/app.log<br/>secrets redacted")]
+    Trace[("logs/agent_traces.jsonl")]
+    Feedback[("logs/feedback.jsonl")]
+    GR -.-> Log
+    RAG -.-> Log
+    LLM -.-> Log
+    Agent -.-> Trace
+    UI -->|thumbs up/down| Feedback
+
+    Human{{"Human review points<br/>retrieved-passages expander<br/>agent-trace expander<br/>feedback buttons"}}
+    UI -.-> Human
+
+    Eval["scripts/evaluate.py<br/>pytest (tests/)<br/>scripts/compare_prompts.py"]
+    Eval -.->|offline stub LLM or --live| RAG
+    Eval -.-> Agent
