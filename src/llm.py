@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.8-flash"  # gemini-2.5-flash is no longer available to new users
 
 
 class LLMError(RuntimeError):
