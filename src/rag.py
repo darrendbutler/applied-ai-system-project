@@ -2,10 +2,10 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional, Set, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from src import llm
-from src.guardrails import validate_question
+from src.guardrails import validate_question, verify_citations
 from src.retriever import Document, Retriever
 
 logger = logging.getLogger(__name__)
@@ -47,10 +47,6 @@ def extract_citations(answer: str) -> List[str]:
     return seen
 
 
-def _citations_valid(citations: List[str], allowed: Set[str]) -> bool:
-    return bool(citations) and all(c in allowed for c in citations)
-
-
 def answer_question(
     question: str,
     retriever: Optional[Retriever] = None,
@@ -82,7 +78,7 @@ def answer_question(
             logger.error("rag llm failure: %s", e)
             return RagResult(answer=ERROR_MESSAGE, retrieved=retrieved, status="error")
         citations = extract_citations(answer)
-        if _citations_valid(citations, allowed):
+        if verify_citations(citations, allowed):
             confidence = round(0.5 * min(1.0, top / 0.5) + 0.5 * min(1.0, len(citations) / 2), 2)
             return RagResult(answer=answer, citations=citations, retrieved=retrieved, confidence=confidence)
         logger.warning("rag citation check failed attempt=%d cited=%s", attempt + 1, citations)

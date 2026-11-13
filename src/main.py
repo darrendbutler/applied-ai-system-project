@@ -9,6 +9,7 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
+from src.logging_config import setup_logging
 from src.recommender import load_songs, recommend_songs
 
 
@@ -63,6 +64,7 @@ PROFILES = {
 
 
 def main() -> None:
+    setup_logging()
     songs = load_songs("data/songs.csv")
 
     width = 60

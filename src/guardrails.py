@@ -27,3 +27,8 @@ def validate_question(question: str) -> Tuple[bool, str]:
     if _INJECTION_RE.search(cleaned):
         return False, "That request looks like an attempt to override my instructions, so I can't help with it."
     return True, cleaned
+
+
+def verify_citations(citations, allowed) -> bool:
+    """Output check: an answer must cite at least one source and only sources that were retrieved."""
+    return bool(citations) and all(c in allowed for c in citations)
