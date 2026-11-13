@@ -50,13 +50,13 @@ Each numeric target is compared with the matching song feature using linear simi
 
 ### Algorithm Recipe
 
-Every song in `data/songs.csv` is scored out of 100 points. The score is the sum of the points below:
+Every song in `data/songs.csv` is scored out of 100 points. The score is the sum of the points below. The raw weights add up to 122.5, so the code divides each one by 1.225 to keep the total on a 0-100 scale (for example, energy is really 60 / 1.225 = 49.0 points):
 
-| Feature | Max points | How it is scored |
+| Feature | Raw weight | How it is scored |
 |---|---|---|
-| Energy | 30 | `30 × (1 - abs(song.energy - target_energy))` |
+| Energy | 60 | `60 × (1 - abs(song.energy - target_energy))` |
 | Mood | 25 | `25` if `song.mood == favorite_mood`, otherwise `0` |
-| Genre | 15 | `15` if `song.genre == favorite_genre`, otherwise `0` |
+| Genre | 7.5 | `7.5` if `song.genre == favorite_genre`, otherwise `0` |
 | Valence | 10 | `10 × (1 - abs(song.valence - target_valence))` |
 | Acousticness | 10 | `10 × (1 - abs(song.acousticness - target_acousticness))` |
 | Danceability | 5 | `5 × (1 - abs(song.danceability - target_danceability))` |
@@ -68,7 +68,7 @@ The steps:
 2. **Process (the loop):** for each song, compute the seven point values above, add them up, and keep the total with a short list of reasons (for example, "mood match +25, energy +28.4").
 3. **Output:** sort all songs by total score, highest first, break ties by energy closeness and then title, and return the top `k` with their scores and reasons.
 
-The flow is diagrammed in [diagram/score_logic.mmd](diagram/score_logic.mmd).
+The flow is diagrammed in [diagrams/score_logic.mmd](diagrams/score_logic.mmd).
 
 The weights are a starting point. They are kept in one `WEIGHTS` dictionary so they are easy to change in the experiments.
 
@@ -94,6 +94,7 @@ The weights are a starting point. They are kept in one `WEIGHTS` dictionary so t
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
 2. Install dependencies
 

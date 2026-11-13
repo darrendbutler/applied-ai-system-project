@@ -16,3 +16,8 @@ venv/
 
 # Personal Notes
 plan/
+
+# Secrets and logs
+.env
+logs/*.log
+logs/*.jsonl
