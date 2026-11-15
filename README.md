@@ -141,7 +141,7 @@ A full live trace for this request is in [logs/sample_trace_live.json](logs/samp
 
 ## Reflection
 
-Building on top of Selecta 1.0 showed me that the hard part of an AI feature is not the model call but everything around it: deciding when to refuse, checking what the model says against what was retrieved, and keeping the pieces testable without a network. Keeping all LLM calls behind one function made it possible to test the whole system offline. See [model_card.md](model_card.md) for limitations, misuse risks and AI collaboration notes.
+Building on top of Selecta 1.0 showed me that the hard part of an AI feature is not the model call but everything around it: deciding when to refuse, checking what the model says against what was retrieved, and keeping the pieces testable without a network. Keeping all LLM calls behind one function made it possible to test the whole system offline. See [model_card.md](model_card.md) for limitations, misuse risks and AI collaboration notes. I also showed me the importance of designing phases for implementation and creating detailed requirements. 
 
 ---
 

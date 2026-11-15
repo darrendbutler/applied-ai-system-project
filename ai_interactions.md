@@ -12,7 +12,10 @@ I used Claude Code to implement the plan in `plan/plan.md` one phase at a time: 
 
 **Prompts used:**
 
-<!-- TODO: paste the key prompts you gave (for example the initial planning prompt in plan/plan.md and the "Implement Phase N" prompts). -->
+I created an initial prompt based on what I wanted to make and the rubric criteria. I tweaked the plan for each phase and used it as a prompt while following up on prompts when I wanted more information how the model implemented the request. For example, asking "How can I fix error X" and reviewing potential recommendation and comparing with documentation. 
+
+> I am working on my final project for an AI course. I want my project to extend the music recommender. My first idea is to extend the recommender by adding 1) song reviews to the data;  the 2) a rag system that lets answers questions about songs in the database using retrival and the gemini API, 3) an agentic work flow that will create a playlist based on a users description of what they want; 4) a user interface in streamlit for users to see the song library and chat with an agent. 
+> Help me create a plan to implement this app that fits the project description and fulfills the the points in the rubric.  
 
 **What did the agent generate or change?**
 
@@ -20,7 +23,7 @@ One commit per phase (see `git log`): `src/reviews.py`, `src/retriever.py`, `src
 
 **What did you verify or fix manually?**
 
-<!-- TODO: describe what you checked or corrected yourself (for example live Gemini runs, model name fixes, reviewing refusals and citations). -->
+I had to fix how the application called Gemini. Claude recommended the incorrect gemini model or the tier I was using. I checked the documentation and updated the code to use the correct model. 
 
 ---
 

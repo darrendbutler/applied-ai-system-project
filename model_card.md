@@ -261,6 +261,6 @@ Agent track reasons: baseline 15.2 words, 0% grounded; specialized 14.5 words, 1
 I built this project with Claude Code as a coding assistant, working phase by phase from `plan/plan.md` (reviews, RAG, agent, guardrails, UI, evaluation, specialization, docs), with a commit per phase.
 
 - **How the AI helped:** drafting modules and tests for each phase, producing the synthetic review text, and wiring the evaluation harness around a mockable LLM wrapper.
-- **One suggestion I accepted:** _TODO: describe a specific suggestion you kept and why it helped (for example, putting every Gemini call behind `src/llm.py` so the whole system could be tested without an API key)._
-- **One suggestion I rejected or revised:** _TODO: describe a specific suggestion you changed and why. This needs to be a real example from your own experience._
-- **What I verified myself:** _TODO: for example, running the app, checking that refusals and citations behave, reading the agent trace._
+- **One suggestion I accepted:** I accepted Claude's Claude suggestion to put every Gemini call behind `src/llm.py` so the whole system could be tested without an API key.
+- **One suggestion I rejected or revised:** _TODO: describe a specific suggestion you changed and why. This needs to be a real example from your own experience._ I added a timeout for calling the Gemini API to avoid spamming. Claude suggested a the calls without any timeout. This hit the usage limit very quickly.
+- **What I verified myself:** I reviewed Claude's plans for each phase to ensure they aligned with my expectations. After implementation I created additional tests and prompts to test the Gemini model. I checked that harmful prompts such as revealing API keys and prompts outside the scope of the app could not be answered. I manually ran the application when possible.

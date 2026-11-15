@@ -15,7 +15,7 @@ venv/
 .pytest_cache/
 
 # Personal Notes
-plan/
+#plan/
 
 # Secrets and logs
 .env
