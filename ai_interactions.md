@@ -52,7 +52,20 @@ The first record in `logs/agent_traces.jsonl` on my machine is a live run that f
 
 The agent caught the API error, recorded it in the trace and returned a friendly error to the UI instead of crashing.
 
-<!-- TODO: after a successful live run, paste a trace with a revision (a check failure fed back to the draft) here. -->
+### Trace 3: successful live run (full file: [logs/sample_trace_live.json](logs/sample_trace_live.json))
+
+Request: `rainy Sunday studying, no vocals, 21 minutes`, real Gemini (`gemini-3.5-flash-lite`). This run did **not** trigger a revision: the rule checks passed on the first draft, so there is no check-failure-to-revision example yet.
+
+| Step | What happened |
+|---|---|
+| plan | lofi/focused, energy 0.2, valence 0.3, acousticness 0.8, size 6, excluded genres from the model |
+| tool:search_songs | top 15 candidates ranked by `recommend_songs` |
+| tool:get_reviews | review snippets fetched for those 15 |
+| draft (iteration 1) | picked song IDs 4, 9, 2, 15, 6, 17 |
+| check (iteration 1) | no failures |
+| critique | score 0.5: "Includes folk and classical tracks, violating the lofi/ambient requirement, and lacks track durations to verify the 21-minute runtime." |
+
+The critic's complaint is a fair one: the catalog has no track lengths, so the "21 minutes" part of the request cannot actually be verified.
 
 ---
 

@@ -223,12 +223,14 @@ Sections 1-9 above describe Selecta 1.0, the original scoring recommender. The s
 - **RAG Q&A** answers questions from TF-IDF-retrieved songs, reviews and glossary entries. It refuses when retrieval is weak, blocks injection attempts, and verifies that every cited source was actually retrieved.
 - **Playlist agent** turns a free-text request into a target profile, searches with the original `recommend_songs`, drafts a playlist, and checks it with deterministic rules plus an LLM critic, for at most 3 iterations.
 - **Evaluation:** `pytest` (47 tests, offline) and `python scripts/evaluate.py` (9 cases). Offline run: **9/9 pass, average confidence 0.78**. This uses a deterministic stub in place of Gemini, so it verifies the pipeline, guardrails and rule checks but says nothing about the quality of real Gemini answers.
-- **Prompt specialization (baseline vs. specialized):** the comparison script `scripts/compare_prompts.py` exists, but its numbers only mean something with `--live`. Offline, both styles produce identical output (10.0 words, 100% cited, 100% grounded), so no conclusion can be drawn. **TODO: run `python scripts/compare_prompts.py --live` and paste the table here.**
+- **Prompt specialization (baseline vs. specialized):** the comparison script `scripts/compare_prompts.py` exists, but its numbers only mean something with `--live`. Live run (`--questions 3 --agent-prompts 1`, kept small for free-tier quota, model `gemini-3.5-flash-lite`): the specialized prompt gives longer RAG answers (32.3 vs 18.3 words) with the same 100% answered / 100% cited / 100% grounded rates, and the agent's per-track reasons are grounded in a review 100% of the time versus 0% for baseline. Sample size is tiny (3 questions, 1 playlist, one run), so treat this as indicative only.
 
 | Style | Answered | Words | Cite rate | Review rate | Grounded |
 |---|---|---|---|---|---|
-| baseline | _live run needed_ | | | | |
-| specialized | _live run needed_ | | | | |
+| baseline | 100% | 18.3 | 100% | 67% | 100% |
+| specialized | 100% | 32.3 | 100% | 67% | 100% |
+
+Agent track reasons: baseline 15.2 words, 0% grounded; specialized 14.5 words, 100% grounded.
 
 ## 11. Limitations and Bias of the Extension
 
@@ -250,8 +252,9 @@ Sections 1-9 above describe Selecta 1.0, the original scoring recommender. The s
 ## 13. Reliability Observations
 
 - **Live API failures degrade instead of crashing.** The first real agent run recorded in `logs/agent_traces.jsonl` ended with `status: error` (`Gemini call failed: ClientError`), and the app showed a friendly message rather than a stack trace. This is the path `RAG LLM outage` in the evaluation harness exercises on purpose.
-- **Model names go stale.** The default model in `src/llm.py` had to change because an earlier model was no longer available to new users, so `GEMINI_MODEL` is overridable from `.env`.
-- **Offline pass is not live pass.** Every offline case passes by construction of the stub. **TODO: record the result of `python scripts/evaluate.py --live`, including any failures and the consistency overlap across 3 runs.**
+- **Model names go stale, and "listed" is not "working".** The first live failure was hidden behind a generic `ClientError`. After logging the status code, `gemini-3.8-flash` turned out to be listed but returned `504 DEADLINE_EXCEEDED` on the free tier, while `gemini-3.5-flash-lite` answered. The default in `src/llm.py` is now the lite model, `GEMINI_MODEL` can override it, non-retryable errors fail fast, and `GEMINI_MIN_INTERVAL_S` throttles calls to stay under free-tier limits.
+- **Live evaluation:** `python scripts/evaluate.py --live` passed 9/9 with average confidence 0.72; agent playlist confidences were 0.75, 0.83 and 0.60, and 3 repeated runs picked identical songs (100% overlap, at temperature 0.2). No case failed, so the harness found no live bugs, which also means it is not stress-testing much. The agent never needed a second iteration in any live run.
+- **Rule checks miss quality problems.** In the demo run the LLM critic gave 0.50 because the playlist included classical and jazz tracks for a "study, no vocals" request, yet all deterministic checks passed. The critic is what surfaces this, and the confidence score reflects it.
 
 ## 14. AI Collaboration
 

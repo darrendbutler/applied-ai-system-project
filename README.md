@@ -63,22 +63,22 @@ Verification: pytest, scripts/evaluate.py, scripts/compare_prompts.py
    streamlit run src/app.py            # the UI (needs the API key for chat and playlists)
    python scripts/demo.py              # end-to-end CLI demo; add --live for real Gemini
    python scripts/evaluate.py          # evaluation table; add --live for real Gemini
-   python scripts/compare_prompts.py   # baseline vs. specialized prompts; only meaningful with --live
+   python scripts/compare_prompts.py   # baseline vs. specialized prompts; use --live (see model_card.md)
    python -m src.main                  # original Selecta 1.0 CLI
    pytest                              # unit tests (no network or API key needed)
    ```
 
 ## Sample Interactions
 
-These come from `python scripts/demo.py` in **offline stub mode**: retrieval, guardrails, citation checks and the agent's rule checks are the real code, but the LLM text is a canned stand-in, which is why the playlist reasons are generic. Run with `--live` to see real Gemini wording.
+These come from `python scripts/demo.py --live` (real Gemini, model `gemini-3.5-flash-lite`). Output was copied from one run; wording will vary between runs.
 
-**1. Grounded RAG answer** (retrieved passages are real; the stub cites the two best sources)
+**1. Grounded RAG answer**
 
 ```
 Q: Which lofi songs are described as good for studying?
 status: ok   confidence: 0.72
-A: Based on the library, these passages are relevant [review:4] [review:42].
-citations: review:4, review:42
+A: Midnight Coding is described as good for studying because it features a "mellow beat that never distracts" [review:4], fitting the lofi genre which is popular as background music for studying [glossary:genre-lofi].
+citations: review:4, glossary:genre-lofi
   [glossary:genre-lofi] (score 0.22) genre: lofi. Lofi is mellow, low-tempo instrumental music with vinyl crackle and soft beat
   [glossary:mood-chill] (score 0.22) mood: chill. A chill song is low energy and relaxed. It is good background music for study
   [review:4] (score 0.18) Review of Midnight Coding (rated 5/5 by studybuddy99): Perfect lofi for coding late at nig
@@ -100,17 +100,17 @@ A: I don't have enough information in the song library to answer that.
 
 ```
 Request: rainy Sunday studying, no vocals, 21 minutes
-status: ok   confidence: 0.80   iterations: 1
-  1. Library Rain - Paper Lanterns (lofi/chill): Top-scoring candidate.
-  2. Midnight Coding - LoRoom (lofi/chill): Top-scoring candidate.
-  3. Spacewalk Thoughts - Orbit Bloom (ambient/chill): Top-scoring candidate.
-  4. Focus Flow - LoRoom (lofi/focused): Top-scoring candidate.
-  5. Pine Creek Porch - Wren & Willow (folk/peaceful): Top-scoring candidate.
-  6. Coffee Shop Stories - Slow Stereo (jazz/relaxed): Top-scoring candidate.
+status: ok   confidence: 0.50   iterations: 1
+  1. Library Rain - Paper Lanterns (lofi/chill): Reviewers call it "the best rainy day study track I have found" with soft piano and no vocals.
+  2. Focus Flow - LoRoom (lofi/focused): Reviewers note it is their "go-to for deep focus" with a steady beat and no vocals.
+  3. Midnight Coding - LoRoom (lofi/chill): Reviewers mention a "mellow beat that never distracts me while studying" and warm vinyl crackle.
+  4. Spacewalk Thoughts - Orbit Bloom (ambient/chill): Reviewers describe it as "floaty, spacious ambient" that feels wonderful for meditation or sleep.
+  5. Moonlit Sonata Remix - Elena Voss (classical/melancholy): Reviewers find it "haunting and melancholy" solo piano that is wonderful for quiet reflection.
+  6. Coffee Shop Stories - Slow Stereo (jazz/relaxed): Reviewers say it features "smooth jazz with a cozy brushed-drum feel" making any Sunday feel perfect.
 trace steps: plan -> tool:search_songs -> tool:get_reviews -> draft -> check -> critique
 ```
 
-A full trace for this request is in [logs/sample_trace_study.json](logs/sample_trace_study.json) and [ai_interactions.md](ai_interactions.md).
+A full live trace for this request is in [logs/sample_trace_live.json](logs/sample_trace_live.json) and [ai_interactions.md](ai_interactions.md).
 
 ## Design Decisions and Trade-offs
 
@@ -125,7 +125,7 @@ A full trace for this request is in [logs/sample_trace_study.json](logs/sample_t
 ## Testing Summary
 
 - `pytest`: 47 tests pass offline, covering scoring, review loading, retrieval, RAG (including citation failure and LLM outage), the agent (including plan validation and rule checks), guardrails, prompts and the evaluation harness.
-- `python scripts/evaluate.py` (offline stub LLM): **9/9 cases pass**, average confidence 0.78 over the 4 scored cases.
+- `python scripts/evaluate.py --live` (real Gemini, `gemini-3.5-flash-lite`): **9/9 cases pass**, average confidence 0.72 over the 4 scored cases. The offline stub run also passes 9/9 (confidence 0.78).
 
 | Case | Result | Detail |
 |---|---|---|
@@ -134,10 +134,10 @@ A full trace for this request is in [logs/sample_trace_study.json](logs/sample_t
 | RAG injection (blocked) | PASS | `blocked` before retrieval |
 | RAG empty/overlong input | PASS | both blocked |
 | RAG LLM outage (degrades) | PASS | friendly error, no stack trace |
-| Agent playlists (3 descriptions) | PASS | right size, no duplicates, valid IDs, excluded genres respected |
-| Agent consistency (3 runs) | PASS | 100% overlap (trivial with a deterministic stub) |
+| Agent playlists (3 descriptions) | PASS (confidence 0.75, 0.83, 0.60) | right size, no duplicates, valid IDs, excluded genres respected |
+| Agent consistency (3 runs) | PASS | 100% overlap of picked songs across 3 live runs |
 
-**Caveat:** the offline run proves the pipeline and guardrails work, not that Gemini answers well. Live results (`--live`) depend on API quota and model availability and are not recorded here yet. The baseline-vs-specialized prompt comparison is likewise only a smoke test offline (the stub gives both styles identical output); see [model_card.md](model_card.md) for its status.
+**Caveat:** a passing live run is one sample, not a guarantee. The checks are mostly structural (size, citations, valid IDs); they do not measure whether a playlist feels right. In the live demo the agent critic scored the study playlist only 0.50 because it included classical and jazz tracks, and the rule checks (which cannot see that) passed it anyway. The baseline-vs-specialized comparison is in [model_card.md](model_card.md).
 
 ## Reflection
 

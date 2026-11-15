@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-3.8-flash"  # gemini-2.5-flash is no longer available to new users
+DEFAULT_MODEL = "gemini-3.5-flash-lite"  # gemini-3.8-flash timed out (504) on the free tier
+
+_last_call = 0.0
 
 
 class LLMError(RuntimeError):
@@ -33,8 +35,16 @@ def generate(prompt: str, system: Optional[str] = None, retries: int = 2,
     )
     config = types.GenerateContentConfig(system_instruction=system, temperature=0.2)
 
+    # Free-tier throttle: spread calls out so we stay under the per-minute limit.
+    global _last_call
+    min_interval = float(os.getenv("GEMINI_MIN_INTERVAL_S", "0"))
+
     last_err: Optional[Exception] = None
     for attempt in range(retries + 1):
+        wait = _last_call + min_interval - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _last_call = time.time()
         start = time.time()
         try:
             resp = client.models.generate_content(model=model, contents=prompt, config=config)
@@ -42,7 +52,12 @@ def generate(prompt: str, system: Optional[str] = None, retries: int = 2,
             return (resp.text or "").strip()
         except Exception as e:  # SDK raises various error types
             last_err = e
-            logger.warning("llm error attempt=%d: %s", attempt + 1, type(e).__name__)
+            code = getattr(e, "code", None)
+            logger.warning("llm error attempt=%d: %s code=%s %s", attempt + 1,
+                           type(e).__name__, code, str(e)[:200].replace(api_key, "***"))
+            # Only rate limits and server errors are worth retrying; others waste quota.
+            if isinstance(code, int) and code not in (429,) and code < 500:
+                break
             if attempt < retries:
                 time.sleep(2 ** attempt)
     raise LLMError(f"Gemini call failed: {type(last_err).__name__}") from last_err
