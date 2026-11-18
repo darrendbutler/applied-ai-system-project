@@ -12,7 +12,110 @@ What I added on top of it:
 
 ## Architecture
 
-The full diagram is [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd) (Mermaid; GitHub and most Markdown previewers render it).
+The diagrams below are rendered from [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd) and [diagrams/score_logic.mmd](diagrams/score_logic.mmd) (Mermaid; GitHub and most Markdown previewers render them).
+
+### System architecture
+
+The UI sends questions through guardrails and the RAG pipeline (TF-IDF retrieval, grounding threshold, Gemini, citation check), and playlist requests to a bounded plan, act, draft, check agent that calls the original recommender as a tool. Logs, traces and feedback are side channels for human review, and tests and evaluation scripts verify the pipeline offline.
+
+```mermaid
+flowchart TD
+    User([User]) --> UI["Streamlit UI<br/>src/app.py<br/>Library | Ask | Playlist Agent"]
+
+    subgraph Data["Data (CSV / Markdown)"]
+        Songs[(data/songs.csv)]
+        Reviews[(data/reviews.csv<br/>synthetic)]
+        Glossary[(data/glossary.md)]
+    end
+
+    %% ---- RAG path ----
+    UI -->|question| GR["guardrails.py<br/>validate_question<br/>empty / length / injection"]
+    GR -->|blocked| UI
+    GR -->|ok| RAG["rag.py<br/>answer_question"]
+    Songs --> Ret
+    Reviews --> Ret
+    Glossary --> Ret
+    Ret["retriever.py<br/>TF-IDF + cosine<br/>top-k docs"] --> RAG
+    RAG -->|top score < threshold| NoInfo["'Not enough information'<br/>(no LLM call)"]
+    NoInfo --> UI
+    RAG -->|grounded prompt<br/>prompts.py persona + few-shot| LLM
+    LLM["llm.py<br/>Gemini wrapper<br/>retries + timeout"] --> Cite{"verify_citations<br/>cited IDs were retrieved?"}
+    Cite -->|no: retry once, else safe message| RAG
+    Cite -->|yes| UI
+
+    %% ---- Agent path ----
+    UI -->|playlist description| Agent
+    subgraph Agent["agent.py: PlaylistAgent (max 3 iterations)"]
+        Plan["1. Plan<br/>LLM -> JSON profile<br/>validate_plan clamps 0-1"]
+        Act["2. Act (tools)<br/>search_songs -> recommend_songs<br/>get_reviews"]
+        Draft["3. Draft<br/>LLM picks + orders + reasons"]
+        Check{"4. Check<br/>deterministic rules<br/>+ LLM critic"}
+        Plan --> Act --> Draft --> Check
+        Check -->|failures fed back| Draft
+    end
+    Rec["recommender.py<br/>score_song / recommend_songs<br/>(Selecta 1.0, unchanged)"]
+    Act --> Rec
+    Songs --> Rec
+    Act --> Reviews
+    Plan --> LLM
+    Draft --> LLM
+    Check --> LLM
+    Check -->|pass or best effort| UI
+
+    %% ---- Observability & human review ----
+    Log[("logs/app.log<br/>secrets redacted")]
+    Trace[("logs/agent_traces.jsonl")]
+    Feedback[("logs/feedback.jsonl")]
+    GR -.-> Log
+    RAG -.-> Log
+    LLM -.-> Log
+    Agent -.-> Trace
+    UI -->|thumbs up/down| Feedback
+
+    Human{{"Human review points<br/>retrieved-passages expander<br/>agent-trace expander<br/>feedback buttons"}}
+    UI -.-> Human
+
+    Eval["scripts/evaluate.py<br/>pytest (tests/)<br/>scripts/compare_prompts.py"]
+    Eval -.->|offline stub LLM or --live| RAG
+    Eval -.-> Agent
+```
+
+### Scoring logic (Selecta 1.0)
+
+Every song is judged against the user's taste profile: exact-match bonuses for mood and genre, plus closeness points for each numeric trait. Weights are divided by 1.225 so the total lands on a 0-100 scale, then songs are sorted and the top K are returned with reasons.
+
+```mermaid
+flowchart TD
+    subgraph INPUT["INPUT: User Preferences"]
+        A["User profile<br/>favorite_genre, favorite_mood,<br/>target_energy, target_valence,<br/>target_acousticness, target_danceability"]
+        B[("data/songs.csv<br/>20 songs")]
+        K["k = number of recommendations"]
+    end
+
+    A --> C
+    B --> C["Load all songs into a list of Song records"]
+
+    subgraph PROCESS["PROCESS: The Loop (judge every song)"]
+        C --> D{"More songs<br/>to score?"}
+        D -- Yes --> E["Take next song"]
+        E --> F["Categorical points (exact match only)<br/>mood match: 25<br/>genre match: 7.5"]
+        F --> G["Numeric closeness points<br/>1 - abs(song - target) x weight<br/>energy 60, valence 10,<br/>acousticness 10, danceability 5,<br/>tempo 5 (scaled to 0-1)"]
+        G --> H["Weights divided by 1.225<br/>Sum into total score (0-100)<br/>and record reasons<br/>e.g. 'mood match +25'"]
+        H --> I["Append (song, score, reasons)<br/>to scored list"]
+        I --> D
+    end
+
+    D -- No --> J
+
+    subgraph OUTPUT["OUTPUT: The Ranking"]
+        J["Sort scored list by score, descending<br/>(tie-break: energy closeness, then title)"]
+        J --> L["Slice the top K results"]
+        K --> L
+        L --> M["Top K Recommendations<br/>title, artist, score, explanation"]
+    end
+```
+
+### Text summary
 
 ```
 User -> Streamlit UI (src/app.py)
