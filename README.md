@@ -10,6 +10,8 @@ What I added on top of it:
 4. **Streamlit UI** (`src/app.py`): a library browser, a RAG chat tab and a playlist agent tab.
 5. **Reliability tooling**: input guardrails, logging with secret redaction, an evaluation harness, unit tests, and a baseline-vs-specialized prompt comparison.
 
+## [Watch the demo! ▶️](https://www.loom.com/share/7486737374a94fa2a35b0b3ebe2f7a0b)
+
 ## Architecture
 
 The diagrams below are rendered from [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd) and [diagrams/score_logic.mmd](diagrams/score_logic.mmd) (Mermaid; GitHub and most Markdown previewers render them).
